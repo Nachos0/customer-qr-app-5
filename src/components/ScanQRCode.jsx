@@ -1,27 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useNavigate } from 'react-router-dom';
+import supabase from '../supabaseClient';
 
 const ScanQRCode = () => {
   const scannerRef = useRef(null);
   const navigate = useNavigate();
     const [scannerActive, setScannerActive] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
-    const syncId = localStorage.getItem('_sync_id');
-
-    const getPrefixedKey = (key) => {
-        return syncId ? `${syncId}_${key}` : key;
-    }
 
 
   useEffect(() => {
-        if (!syncId) {
-            navigate('/');
-            return;
-        }
-      console.log("useEffect running");
       if (!scannerActive) {
-          console.log("Scanner not active");
           return;
       }
     const html5QrcodeScanner = new Html5QrcodeScanner(
@@ -31,52 +21,56 @@ const ScanQRCode = () => {
 
     html5QrcodeScanner.render(onScanSuccess, onScanError);
 
-    function onScanSuccess(decodedText, decodedResult) {
-      console.log(`Scan result: ${decodedText}`, decodedResult);
-        setErrorMessage('');
-        try {
-            const parsedData = JSON.parse(decodedText);
-            if (parsedData && parsedData.id) {
-                const prefixedId = getPrefixedKey(parsedData.id);
-                if (parsedData.type === 'customer') {
-                    // Get current status from localStorage
-                    const storedData = localStorage.getItem(prefixedId);
-                    const currentStatus = storedData ? JSON.parse(storedData).status : null;
+        async function onScanSuccess(decodedText, decodedResult) {
+            setErrorMessage('');
+            try {
+                const parsedData = JSON.parse(decodedText);
+                if (parsedData && parsedData.id) {
+                    // Check if the data exists in Supabase
+                    const { data, error } = await supabase
+                        .from('customers')
+                        .select('*')
+                        .eq('id', parsedData.id)
+                        .single();
 
-                    // Navigate and pass the current status
-                    navigate(`/display/${parsedData.id}`, { state: { currentStatus } });
+
+                    if (error) {
+                      console.log(error)
+                        setErrorMessage('Customer not found in the database.');
+                    } else if (data) {
+
+                        navigate(`/display/${parsedData.id}`);
+                    } else {
+                        setErrorMessage('Customer not found.');
+                    }
                 } else {
-                    navigate(`/display/${parsedData.id}`);
+                    setErrorMessage('Invalid QR Code data.');
                 }
-            } else {
-                setErrorMessage('Invalid QR Code data.');
+            } catch (error) {
+                console.error("Failed to parse QR code data or data not found:", error);
+                setErrorMessage('Failed to parse QR code data or data not found.');
             }
 
-        } catch (error) {
-            console.error("Failed to parse QR code data:", error);
-            setErrorMessage('Failed to parse QR code data.');
+            html5QrcodeScanner.clear().then(() => {
+                setScannerActive(false);
+            }).catch((error) => {
+                console.error("Failed to clear scanner:", error);
+            });
         }
 
-      html5QrcodeScanner.clear().then(() => {
-          setScannerActive(false);
-      }).catch((error) => {
-          console.error("Failed to clear scanner:", error);
-      });
-    }
 
     function onScanError(error) {
       console.error("Scan error:", error);
     }
 
       return () => {
-          console.log("useEffect cleanup");
           if (scannerActive) {
               html5QrcodeScanner.clear().catch((error) => {
                   console.error("Failed to clear scanner:", error);
               });
           }
       };
-  }, [navigate, scannerActive, syncId]);
+  }, [navigate, scannerActive]);
 
   return (
       <>

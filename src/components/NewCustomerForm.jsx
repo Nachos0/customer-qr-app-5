@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeCanvas } from 'qrcode.react';
+import supabase from '../supabaseClient';
 
 const NewCustomerForm = () => {
   const [name, setName] = useState('');
@@ -11,25 +12,35 @@ const NewCustomerForm = () => {
   const navigate = useNavigate();
   const [customerQRValue, setCustomerQRValue] = useState('');
   const [ownerQRValue, setOwnerQRValue] = useState('');
+    const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-    const syncId = localStorage.getItem('_sync_id'); // Get sync ID
 
-    const getPrefixedKey = (key) => {
-        return syncId ? `${syncId}_${key}` : key;
-    }
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const id = Date.now().toString();
-        const prefixedId = getPrefixedKey(id); // Prefix the ID
-    const data = { id, name, date, status, description };
-        localStorage.setItem(prefixedId, JSON.stringify(data));
+    setLoading(true);
+    setError(null);
 
+    const id = Date.now().toString();
+    const data = { id, name, date, status, description };
+
+      try {
+        const { error } = await supabase.from('customers').insert([data]);
+
+        if (error) {
+          throw error;
+        }
     const customerData = { id: id, type: 'customer', name, date, status, description };
     const ownerData = { id: id, type: 'owner', name, date, status, description };
     setCustomerQRValue(JSON.stringify(customerData));
     setOwnerQRValue(JSON.stringify(ownerData));
     setShowQR(true);
+      } catch (error) {
+        setError(error.message);
+        console.error("Error adding customer:", error);
+      } finally {
+        setLoading(false);
+      }
   };
 
   const handlePrint = () => {
@@ -85,6 +96,14 @@ const NewCustomerForm = () => {
         <button onClick={handleDone}>Done</button>
       </div>
     );
+  }
+
+    if (loading) {
+    return <div>Adding customer...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
   }
 
   return (

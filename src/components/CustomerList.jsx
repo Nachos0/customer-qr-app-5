@@ -1,48 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import supabase from '../supabaseClient';
 
 const CustomerList = () => {
-  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [customers, setCustomers] = useState([]); // Local state for customers
-    const syncId = localStorage.getItem('_sync_id');
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-    const getPrefixedKey = (key) => {
-        return syncId ? `${syncId}_${key}` : key;
-    }
-
-  // Use useEffect to fetch and update the customer list
     useEffect(() => {
-        if (!syncId) {
-            navigate('/'); // Redirect to sync ID entry if not set
-            return;
+    const fetchCustomers = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data, error } = await supabase.from('customers').select('*').order('date', { ascending: false });
+        if (error) {
+          throw error;
         }
-    const getAllCustomers = () => {
-      const fetchedCustomers = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key.startsWith(syncId + '_')) { // Check for prefixed keys
-                    try {
-                        const data = JSON.parse(localStorage.getItem(key));
-              if (data && data.id) {
-                fetchedCustomers.push(data);
-              }
-            } catch (error) {
-              console.error("Error parsing customer data:", error);
-            }
-          }
-        }
-
-      fetchedCustomers.sort((a, b) => new Date(b.date) - new Date(a.date));
-      return fetchedCustomers;
+        setCustomers(data);
+      } catch (error) {
+        setError(error.message);
+        console.error("Error fetching customers:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    setCustomers(getAllCustomers()); // Update local state
-  }, [syncId, navigate]); // Include syncId in the dependency array
+    fetchCustomers();
+  }, []);
+
 
   const filteredCustomers = customers.filter((customer) =>
     customer.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+    if (loading) {
+    return <div>Loading customers...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   return (
     <div>
