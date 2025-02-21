@@ -12,11 +12,18 @@ const NewCustomerForm = () => {
   const [customerQRValue, setCustomerQRValue] = useState('');
   const [ownerQRValue, setOwnerQRValue] = useState('');
 
+    const syncId = localStorage.getItem('_sync_id'); // Get sync ID
+
+    const getPrefixedKey = (key) => {
+        return syncId ? `${syncId}_${key}` : key;
+    }
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const id = Date.now().toString();
+        const prefixedId = getPrefixedKey(id); // Prefix the ID
     const data = { id, name, date, status, description };
-    localStorage.setItem(id, JSON.stringify(data));
+        localStorage.setItem(prefixedId, JSON.stringify(data));
 
     const customerData = { id: id, type: 'customer', name, date, status, description };
     const ownerData = { id: id, type: 'owner', name, date, status, description };

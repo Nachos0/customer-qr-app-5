@@ -7,9 +7,20 @@ const DisplayData = () => {
   const [newStatus, setNewStatus] = useState(''); // State for the new status
   const navigate = useNavigate();
   const location = useLocation();
+    const syncId = localStorage.getItem('_sync_id');
+
+    const getPrefixedKey = (key) => {
+        return syncId ? `${syncId}_${key}` : key;
+    }
+    const prefixedId = getPrefixedKey(id); // Prefix the ID
+
 
   useEffect(() => {
-    const storedData = localStorage.getItem(id);
+        if (!syncId) {
+            navigate('/');
+            return;
+        }
+        const storedData = localStorage.getItem(prefixedId);
     if (storedData) {
       const parsedData = JSON.parse(storedData);
       setData(parsedData);
@@ -18,7 +29,7 @@ const DisplayData = () => {
     } else {
       setData({ error: 'No data found for this code.' });
     }
-  }, [id, location.state]);
+  }, [prefixedId, syncId, navigate, location.state]);
 
   const handleStatusChange = (e) => {
     setNewStatus(e.target.value);
@@ -26,8 +37,8 @@ const DisplayData = () => {
 
   const handleSaveChanges = () => {
     if (data && newStatus) {
-      const updatedData = { ...data, status: newStatus };
-      localStorage.setItem(id, JSON.stringify(updatedData));
+            const updatedData = { ...data, status: newStatus };
+            localStorage.setItem(prefixedId, JSON.stringify(updatedData));
       setData(updatedData); // Update the displayed data immediately
       alert('Status updated successfully!'); // Provide feedback
       //Optionally navigate back to customer list, or stay on the page

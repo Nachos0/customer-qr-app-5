@@ -7,9 +7,18 @@ const ScanQRCode = () => {
   const navigate = useNavigate();
     const [scannerActive, setScannerActive] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+    const syncId = localStorage.getItem('_sync_id');
+
+    const getPrefixedKey = (key) => {
+        return syncId ? `${syncId}_${key}` : key;
+    }
 
 
   useEffect(() => {
+        if (!syncId) {
+            navigate('/');
+            return;
+        }
       console.log("useEffect running");
       if (!scannerActive) {
           console.log("Scanner not active");
@@ -28,9 +37,10 @@ const ScanQRCode = () => {
         try {
             const parsedData = JSON.parse(decodedText);
             if (parsedData && parsedData.id) {
+                const prefixedId = getPrefixedKey(parsedData.id);
                 if (parsedData.type === 'customer') {
                     // Get current status from localStorage
-                    const storedData = localStorage.getItem(parsedData.id);
+                    const storedData = localStorage.getItem(prefixedId);
                     const currentStatus = storedData ? JSON.parse(storedData).status : null;
 
                     // Navigate and pass the current status
@@ -66,7 +76,7 @@ const ScanQRCode = () => {
               });
           }
       };
-  }, [navigate, scannerActive]);
+  }, [navigate, scannerActive, syncId]);
 
   return (
       <>

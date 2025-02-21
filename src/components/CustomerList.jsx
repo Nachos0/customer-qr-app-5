@@ -5,28 +5,40 @@ const CustomerList = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [customers, setCustomers] = useState([]); // Local state for customers
+    const syncId = localStorage.getItem('_sync_id');
+
+    const getPrefixedKey = (key) => {
+        return syncId ? `${syncId}_${key}` : key;
+    }
 
   // Use useEffect to fetch and update the customer list
-  useEffect(() => {
+    useEffect(() => {
+        if (!syncId) {
+            navigate('/'); // Redirect to sync ID entry if not set
+            return;
+        }
     const getAllCustomers = () => {
       const fetchedCustomers = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        try {
-          const data = JSON.parse(localStorage.getItem(key));
-          if (data && data.id) {
-            fetchedCustomers.push(data);
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith(syncId + '_')) { // Check for prefixed keys
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key));
+              if (data && data.id) {
+                fetchedCustomers.push(data);
+              }
+            } catch (error) {
+              console.error("Error parsing customer data:", error);
+            }
           }
-        } catch (error) {
-          console.error("Error parsing customer data:", error);
         }
-      }
+
       fetchedCustomers.sort((a, b) => new Date(b.date) - new Date(a.date));
       return fetchedCustomers;
     };
 
     setCustomers(getAllCustomers()); // Update local state
-  }, []); // Empty dependency array: runs once on mount
+  }, [syncId, navigate]); // Include syncId in the dependency array
 
   const filteredCustomers = customers.filter((customer) =>
     customer.name.toLowerCase().includes(searchQuery.toLowerCase())
