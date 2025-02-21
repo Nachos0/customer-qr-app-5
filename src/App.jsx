@@ -11,7 +11,7 @@ function App() {
 
   return (
     <div className="container">
-      <h1>small QRcode app</h1>
+      <h1>تطبيق QR للعملاء</h1>
       <div className="page-content">
          <Routes>
             <Route path="/" element={<Home navigate={navigate} />} />

@@ -1,28 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const CustomerList = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [customers, setCustomers] = useState([]); // Local state for customers
 
-  const getAllCustomers = () => {
-    const customers = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      try {
-        const data = JSON.parse(localStorage.getItem(key));
-        if (data && data.id) {
-          customers.push(data);
+  // Use useEffect to fetch and update the customer list
+  useEffect(() => {
+    const getAllCustomers = () => {
+      const fetchedCustomers = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        try {
+          const data = JSON.parse(localStorage.getItem(key));
+          if (data && data.id) {
+            fetchedCustomers.push(data);
+          }
+        } catch (error) {
+          console.error("Error parsing customer data:", error);
         }
-      } catch (error) {
-        console.error("Error parsing customer data:", error);
       }
-    }
-    customers.sort((a, b) => new Date(b.date) - new Date(a.date));
-    return customers;
-  };
+      fetchedCustomers.sort((a, b) => new Date(b.date) - new Date(a.date));
+      return fetchedCustomers;
+    };
 
-  const customers = getAllCustomers();
+    setCustomers(getAllCustomers()); // Update local state
+  }, []); // Empty dependency array: runs once on mount
 
   const filteredCustomers = customers.filter((customer) =>
     customer.name.toLowerCase().includes(searchQuery.toLowerCase())

@@ -28,7 +28,16 @@ const ScanQRCode = () => {
         try {
             const parsedData = JSON.parse(decodedText);
             if (parsedData && parsedData.id) {
-                navigate(`/display/${parsedData.id}`);
+                if (parsedData.type === 'customer') {
+                    // Get current status from localStorage
+                    const storedData = localStorage.getItem(parsedData.id);
+                    const currentStatus = storedData ? JSON.parse(storedData).status : null;
+
+                    // Navigate and pass the current status
+                    navigate(`/display/${parsedData.id}`, { state: { currentStatus } });
+                } else {
+                    navigate(`/display/${parsedData.id}`);
+                }
             } else {
                 setErrorMessage('Invalid QR Code data.');
             }
